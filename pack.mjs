@@ -1,4 +1,4 @@
-// 打包：cargo build --release → dist/any-kareokie-source-youtube-<版本>.zip（source.json、Windows 與 Mac 的執行檔、README、TERMS、LICENSE）。
+// 打包：cargo build --release → dist/micnook-source-youtube-<版本>.zip（source.json、Windows 與 Mac 的執行檔、README、TERMS、LICENSE）。
 // 不簽章（見 README）。zip 用 PowerShell 的 Compress-Archive，不另外裝套件。
 // Mac（Apple 晶片）的執行檔要在 Mac 上編：cargo build --release --target aarch64-apple-darwin，
 // 把 target/aarch64-apple-darwin/release/source-youtube 放到 dist/mac/source-youtube-macos（或用環境變數 MAC_BIN 指定）
@@ -28,7 +28,7 @@ if (!fs.existsSync(macBin)) {
 fs.copyFileSync(macBin, path.join(stage, manifest.execMacos));
 for (const f of ["source.json", "README.md", "TERMS.md", "LICENSE"]) fs.copyFileSync(path.join(DIR, f), path.join(stage, f));
 
-const zip = path.join(DIR, "dist", `any-kareokie-source-youtube-${manifest.version}.zip`);
+const zip = path.join(DIR, "dist", `micnook-source-youtube-${manifest.version}.zip`);
 fs.rmSync(zip, { force: true });
 const z = spawnSync("powershell", ["-NoProfile", "-Command", `Compress-Archive -Path '${stage}\\*' -DestinationPath '${zip}'`], { stdio: "inherit" });
 if (z.status !== 0) process.exit(1);

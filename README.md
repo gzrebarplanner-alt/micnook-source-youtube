@@ -13,7 +13,7 @@
 node pack.mjs
 ```
 
-產生 `dist/any-kareokie-source-youtube-<版本>.zip`，在 MicNook 的「設定 → 匯入來源 → 安裝來源…」選這個檔。
+產生 `dist/micnook-source-youtube-<版本>.zip`，在 MicNook 的「設定 → 匯入來源 → 安裝來源…」選這個檔。
 本機打包要先準備 Mac 版執行檔（見 pack.mjs 檔頭）。
 
 ## 發版
@@ -22,4 +22,4 @@ node pack.mjs
 GitHub Actions（`.github/workflows/release.yml`）會在 Mac 與 Windows 上各編一份、打包、發 Release，
 再照執行結果 Summary 的 SHA-256 與大小更新 `catalog.json`。
 
-原始碼與下載：<https://github.com/gzrebarplanner-alt/any-kareokie-source-youtube>（Releases 放打包好的 zip）。
+原始碼與下載：<https://github.com/gzrebarplanner-alt/micnook-source-youtube>（Releases 放打包好的 zip）。

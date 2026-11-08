@@ -14,9 +14,9 @@
         "ja": "yt-dlp で YouTube を検索し、動画の音声と映像をダウンロードします",
         "ko": "yt-dlp로 YouTube를 검색하고 영상의 오디오와 화면을 내려받습니다"
       },
-      "homepage": "https://github.com/gzrebarplanner-alt/any-kareokie-source-youtube",
-      "terms": "https://github.com/gzrebarplanner-alt/any-kareokie-source-youtube/blob/main/TERMS.md",
-      "download": "https://github.com/gzrebarplanner-alt/any-kareokie-source-youtube/releases/download/v1.0.7/any-kareokie-source-youtube-1.0.7.zip",
+      "homepage": "https://github.com/gzrebarplanner-alt/micnook-source-youtube",
+      "terms": "https://github.com/gzrebarplanner-alt/micnook-source-youtube/blob/main/TERMS.md",
+      "download": "https://github.com/gzrebarplanner-alt/micnook-source-youtube/releases/download/v1.0.7/any-kareokie-source-youtube-1.0.7.zip",
       "sha256": "28f70bd3ea85589568759dd0f1a79e40997b8d6ca5566e9c6881de7e90d32949",
       "size": 1913518
     }
