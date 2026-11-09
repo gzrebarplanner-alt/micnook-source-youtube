@@ -1,6 +1,6 @@
 [package]
 name = "source-youtube"
-version = "1.0.7"
+version = "1.0.8"
 description = "MicNook 的 YouTube 匯入來源（另外散布的擴充，見 README）"
 edition = "2024"
 license = "MIT"
@@ -9,6 +9,11 @@ license = "MIT"
 serde_json = "1"
 # 第一次使用時下載 yt-dlp
 ureq = "3"
+
+# Windows：下載 python.org 的 embeddable Python（解開 zip、核對 SHA-256）
+[target.'cfg(windows)'.dependencies]
+zip = { version = "2", default-features = false, features = ["deflate"] }
+sha2 = "0.10"
 
 [profile.release]
 opt-level = "s"

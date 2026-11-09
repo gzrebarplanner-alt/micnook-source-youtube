@@ -2,7 +2,8 @@
 # Mac（Apple 晶片）的執行檔只能在 Mac 上編，所以分兩段：macos 先編好傳給 windows，windows 跑 pack.mjs 打包。
 # Mac 用 Intel 的機器交叉編譯成 Apple 晶片版（編出來一樣）：GitHub 的 Apple 晶片機器常常排不到，
 # 1.0.6 連三次排隊 15 分鐘被取消（Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times）
-# catalog.json 不在這裡改：Release 好了之後確認 zip 再手動更新（SHA-256 與大小印在這次執行的 Summary）。
+# 發的是草稿：Windows 上跑 node sign-release.mjs <版本> 替 source-youtube.exe 簽章、換掉 zip 再發佈（智慧型應用程式控制會擋沒簽章的執行檔）。
+# catalog.json 不在這裡改：簽完 sign-release.mjs 會印出 SHA-256 與大小，再手動更新。
 name: release
 
 on:
@@ -53,7 +54,7 @@ jobs:
           $zip = "dist/micnook-source-youtube-$env:VERSION.zip"
           $notes = "release-notes/$env:VERSION.md"
           if (-not (Test-Path $notes)) { throw "找不到 $notes" }
-          gh release create "${{ github.ref_name }}" $zip --title "YouTube 匯入來源 $env:VERSION" --notes-file $notes
+          gh release create "${{ github.ref_name }}" $zip --draft --title "YouTube 匯入來源 $env:VERSION" --notes-file $notes
           $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
           $size = (Get-Item $zip).Length
           "## catalog.json`n`n- sha256: ``$hash```n- size: $size" >> $env:GITHUB_STEP_SUMMARY

@@ -8,12 +8,17 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::time::{Duration, SystemTime};
 
-/// yt-dlp 官方的單一執行檔：Windows 是 yt-dlp.exe，Mac 是 yt-dlp_macos（Universal，Apple 晶片也能跑）。
-/// Android 沒有能跑的單一執行檔，用 Python 原始碼的 zipapp（yt-dlp），由 App 帶的 Python 執行（command）
-#[cfg(windows)]
-const YTDLP: &str = "yt-dlp.exe";
-#[cfg(target_os = "android")]
+/// yt-dlp：Mac 是官方的單一執行檔 yt-dlp_macos（Universal，Apple 晶片也能跑）。
+/// Windows 與 Android 用 Python 原始碼的 zipapp（yt-dlp），交給 Python 執行（command）：
+/// Windows 以前用 yt-dlp.exe，它沒有程式碼簽章，Windows 11 的「智慧型應用程式控制」會擋（os error 4551，MicNook 回報 d497aa48），
+/// 改用 python.org 的 embeddable Python（Python Software Foundation 簽章）來跑；zipapp 不是執行檔，不受它管
+#[cfg(any(windows, target_os = "android"))]
 const YTDLP: &str = "yt-dlp";
+/// Windows 的 Python：固定版本，下載後核對 SHA-256（2026-11-09 從 python.org 下載、檔案都有 PSF 的有效簽章）
+#[cfg(windows)]
+const PYTHON_ZIP: &str = "https://www.python.org/ftp/python/3.14.10/python-3.14.10-embed-amd64.zip";
+#[cfg(windows)]
+const PYTHON_SHA256: &str = "90905e64a840557d8c1bc4f5b74db3d7ee85e3ffb217611cac1c7813acea4159";
 #[cfg(not(any(windows, target_os = "android")))]
 const YTDLP: &str = "yt-dlp_macos";
 const UPDATE_EVERY: Duration = Duration::from_secs(3 * 24 * 3600);
@@ -75,6 +80,13 @@ impl Ctx {
 fn setup(ctx: &Ctx) -> R<()> {
     let exe = ctx.ytdlp();
     let stamp = ctx.data.join("updated-at");
+    #[cfg(windows)]
+    if !python_of(&exe).is_file() {
+        std::fs::create_dir_all(&ctx.data).map_err(|e| Fail("setup_failed", e.to_string()))?;
+        download_python(ctx, &exe.with_file_name("python"))?;
+        // 1.0.7 以前的 yt-dlp.exe 用不到了
+        let _ = std::fs::remove_file(ctx.data.join("yt-dlp.exe"));
+    }
     if !exe.is_file() {
         std::fs::create_dir_all(&ctx.data).map_err(|e| Fail("setup_failed", e.to_string()))?;
         download_ytdlp(ctx, &exe)?;
@@ -102,28 +114,8 @@ fn touch(stamp: &Path) {
 
 fn download_ytdlp(ctx: &Ctx, exe: &Path) -> R<()> {
     let fail = |e: String| Fail("setup_failed", format!("{}{e}", ctx.t("下載 yt-dlp 失敗：", "Couldn't download yt-dlp: ")));
-    let resp = ureq::get(&format!("https://github.com/yt-dlp/yt-dlp/releases/latest/download/{YTDLP}")).call().map_err(|e| fail(e.to_string()))?;
-    let total: f64 = resp.headers().get("content-length").and_then(|v| v.to_str().ok()).and_then(|s| s.parse().ok()).unwrap_or(18e6);
-    let mut body = resp.into_body();
-    let mut reader = body.as_reader();
     let tmp = exe.with_extension("download");
-    let mut file = std::fs::File::create(&tmp).map_err(|e| fail(e.to_string()))?;
-    let mut buf = vec![0u8; 1 << 16];
-    let (mut got, mut last) = (0usize, 0.0f64);
-    loop {
-        let n = reader.read(&mut buf).map_err(|e| fail(e.to_string()))?;
-        if n == 0 {
-            break;
-        }
-        file.write_all(&buf[..n]).map_err(|e| fail(e.to_string()))?;
-        got += n;
-        let p = (got as f64 / total).min(1.0);
-        if p - last >= 0.05 {
-            last = p;
-            out(json!({ "progress": p, "message": format!("{} {:.0}%", ctx.t("下載 yt-dlp", "Downloading yt-dlp"), p * 100.0) }));
-        }
-    }
-    drop(file);
+    download(ctx, &format!("https://github.com/yt-dlp/yt-dlp/releases/latest/download/{YTDLP}"), &tmp, "yt-dlp").map_err(fail)?;
     // Mac：下載下來沒有執行權限
     #[cfg(unix)]
     {
@@ -133,20 +125,73 @@ fn download_ytdlp(ctx: &Ctx, exe: &Path) -> R<()> {
     std::fs::rename(&tmp, exe).map_err(|e| fail(e.to_string()))
 }
 
+/// Windows：yt-dlp 旁邊的 python 資料夾裡的 python.exe
 #[cfg(windows)]
-fn no_window(cmd: &mut Command) {
-    use std::os::windows::process::CommandExt;
-    cmd.creation_flags(0x0800_0000);
+fn python_of(ytdlp: &Path) -> PathBuf {
+    ytdlp.with_file_name("python").join("python.exe")
 }
-#[cfg(not(any(windows, target_os = "android")))]
-fn no_window(_: &mut Command) {}
 
-#[cfg(not(target_os = "android"))]
+/// Windows：下載 embeddable Python、核對 SHA-256、解開到 dir（先解到暫存資料夾，好了才改名，中斷不會留下半套）
+#[cfg(windows)]
+fn download_python(ctx: &Ctx, dir: &Path) -> R<()> {
+    use sha2::{Digest, Sha256};
+    let fail = |e: String| Fail("setup_failed", format!("{}{e}", ctx.t("下載 Python 失敗：", "Couldn't download Python: ")));
+    let zip_path = dir.with_extension("zip.download");
+    download(ctx, PYTHON_ZIP, &zip_path, "Python").map_err(fail)?;
+    let bytes = std::fs::read(&zip_path).map_err(|e| fail(e.to_string()))?;
+    let _ = std::fs::remove_file(&zip_path);
+    let hash: String = Sha256::digest(&bytes).iter().map(|b| format!("{b:02x}")).collect();
+    if hash != PYTHON_SHA256 {
+        return Err(fail(ctx.t("檔案檢查碼不符", "checksum mismatch")));
+    }
+    let tmp = dir.with_extension("tmp");
+    let _ = std::fs::remove_dir_all(&tmp);
+    zip::ZipArchive::new(std::io::Cursor::new(bytes)).and_then(|mut z| z.extract(&tmp)).map_err(|e| fail(e.to_string()))?;
+    let _ = std::fs::remove_dir_all(dir);
+    std::fs::rename(&tmp, dir).map_err(|e| fail(e.to_string()))
+}
+
+/// 下載到 dest，一邊印進度（「下載 <label> N%」）
+fn download(ctx: &Ctx, url: &str, dest: &Path, label: &str) -> Result<(), String> {
+    let resp = ureq::get(url).call().map_err(|e| e.to_string())?;
+    let total: f64 = resp.headers().get("content-length").and_then(|v| v.to_str().ok()).and_then(|s| s.parse().ok()).unwrap_or(18e6);
+    let mut body = resp.into_body();
+    let mut reader = body.as_reader();
+    let mut file = std::fs::File::create(dest).map_err(|e| e.to_string())?;
+    let mut buf = vec![0u8; 1 << 16];
+    let (mut got, mut last) = (0usize, 0.0f64);
+    loop {
+        let n = reader.read(&mut buf).map_err(|e| e.to_string())?;
+        if n == 0 {
+            break;
+        }
+        file.write_all(&buf[..n]).map_err(|e| e.to_string())?;
+        got += n;
+        let p = (got as f64 / total).min(1.0);
+        if p - last >= 0.05 {
+            last = p;
+            out(json!({ "progress": p, "message": format!("{} {label} {:.0}%", ctx.t("下載", "Downloading"), p * 100.0) }));
+        }
+    }
+    Ok(())
+}
+
+/// Windows：Python 跑 yt-dlp 的 zipapp（見 YTDLP）
+#[cfg(windows)]
 fn command(exe: &Path, args: &[&str]) -> Command {
-    let mut cmd = Command::new(exe);
+    use std::os::windows::process::CommandExt;
+    let mut cmd = Command::new(python_of(exe));
+    cmd.arg(exe);
     // yt-dlp 是 Python 程式：強制 UTF-8，否則中日文標題在 Windows 上會變亂碼
     cmd.args(args).env("PYTHONUTF8", "1").env("PYTHONIOENCODING", "utf-8");
-    no_window(&mut cmd);
+    cmd.creation_flags(0x0800_0000);
+    cmd
+}
+
+#[cfg(not(any(windows, target_os = "android")))]
+fn command(exe: &Path, args: &[&str]) -> Command {
+    let mut cmd = Command::new(exe);
+    cmd.args(args).env("PYTHONUTF8", "1").env("PYTHONIOENCODING", "utf-8");
     cmd
 }
 
@@ -167,9 +212,17 @@ fn run(exe: &Path, args: &[&str]) -> std::io::Result<Output> {
     command(exe, args).output()
 }
 
+/// 開不了 yt-dlp（或 Python）：被 Windows 的應用程式控制擋下（os error 4551）時說清楚，其他照原樣
+fn spawn_fail(ctx: &Ctx, e: std::io::Error) -> Fail {
+    if e.raw_os_error() == Some(4551) {
+        return Fail("blocked", ctx.t("Windows 的安全設定（智慧型應用程式控制）擋下了下載程式", "Windows security settings (Smart App Control) blocked the downloader"));
+    }
+    Fail("setup_failed", e.to_string())
+}
+
 /// 跑 yt-dlp；失敗時把 stderr 翻成錯誤代碼
 fn ytdlp(ctx: &Ctx, args: &[&str]) -> R<Output> {
-    let o = run(&ctx.ytdlp(), args).map_err(|e| Fail("setup_failed", e.to_string()))?;
+    let o = run(&ctx.ytdlp(), args).map_err(|e| spawn_fail(ctx, e))?;
     if o.status.success() {
         return Ok(o);
     }
@@ -287,7 +340,7 @@ fn fetch(ctx: &Ctx, dir: &Path, stem: &str, format: &[&str], url: &str) -> R<Pat
         args.extend(["--ffmpeg-location", f]);
     }
     args.push(url);
-    let mut child = command(&ctx.ytdlp(), &args).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().map_err(|e| Fail("setup_failed", e.to_string()))?;
+    let mut child = command(&ctx.ytdlp(), &args).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().map_err(|e| spawn_fail(ctx, e))?;
     let mut stderr = child.stderr.take().unwrap();
     let errs = std::thread::spawn(move || {
         let mut b = Vec::new();

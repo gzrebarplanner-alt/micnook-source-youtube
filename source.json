@@ -2,7 +2,7 @@
   "protocol": 1,
   "id": "youtube",
   "name": "YouTube",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "author": "MicNook contributors",
   "homepage": "https://github.com/gzrebarplanner-alt/micnook-source-youtube",
   "terms": "https://github.com/gzrebarplanner-alt/micnook-source-youtube/blob/main/TERMS.md",
@@ -19,10 +19,10 @@
     "ko": "yt-dlp로 YouTube를 검색하고 영상의 오디오와 화면을 내려받습니다"
   },
   "willDownload": {
-    "zh-Hant": "裝好後就在背景從 GitHub（yt-dlp/yt-dlp）下載 yt-dlp（約 25～40 MB），之後每幾天自動更新",
-    "zh-Hans": "装好后就在后台从 GitHub（yt-dlp/yt-dlp）下载 yt-dlp（约 25～40 MB），之后每几天自动更新",
-    "en": "Downloads yt-dlp (about 25–40 MB) from GitHub (yt-dlp/yt-dlp) in the background right after it’s installed, and updates it every few days",
-    "ja": "インストール後すぐにバックグラウンドで GitHub（yt-dlp/yt-dlp）から yt-dlp（約 25～40 MB）をダウンロードし、その後数日ごとに更新します",
-    "ko": "설치하면 바로 백그라운드에서 GitHub(yt-dlp/yt-dlp)의 yt-dlp(약 25~40MB)를 내려받고, 이후 며칠마다 업데이트합니다"
+    "zh-Hant": "裝好後就在背景從 GitHub（yt-dlp/yt-dlp）下載 yt-dlp（Windows 另外從 python.org 下載 Python，共約 20 MB；Mac 約 25～40 MB），之後每幾天自動更新",
+    "zh-Hans": "装好后就在后台从 GitHub（yt-dlp/yt-dlp）下载 yt-dlp（Windows 另外从 python.org 下载 Python，共约 20 MB；Mac 约 25～40 MB），之后每几天自动更新",
+    "en": "Downloads yt-dlp from GitHub (yt-dlp/yt-dlp) in the background right after it’s installed (on Windows also Python from python.org, about 20 MB in total; about 25–40 MB on Mac), and updates it every few days",
+    "ja": "インストール後すぐにバックグラウンドで GitHub（yt-dlp/yt-dlp）から yt-dlp をダウンロードし（Windows では python.org から Python も、合計約 20 MB。Mac は約 25～40 MB）、その後数日ごとに更新します",
+    "ko": "설치하면 바로 백그라운드에서 GitHub(yt-dlp/yt-dlp)의 yt-dlp를 내려받고(Windows는 python.org의 Python도 함께, 합계 약 20MB / Mac은 약 25~40MB), 이후 며칠마다 업데이트합니다"
   }
 }

@@ -1,5 +1,5 @@
 // 打包：cargo build --release → dist/micnook-source-youtube-<版本>.zip（source.json、Windows 與 Mac 的執行檔、README、TERMS、LICENSE）。
-// 不簽章（見 README）。zip 用 PowerShell 的 Compress-Archive，不另外裝套件。
+// 這裡不簽章：GitHub Actions 發草稿後，在 Windows 上用 sign-release.mjs 簽 source-youtube.exe 再發佈。zip 用 PowerShell 的 Compress-Archive，不另外裝套件。
 // Mac（Apple 晶片）的執行檔要在 Mac 上編：cargo build --release --target aarch64-apple-darwin，
 // 把 target/aarch64-apple-darwin/release/source-youtube 放到 dist/mac/source-youtube-macos（或用環境變數 MAC_BIN 指定）
 import { spawnSync } from "node:child_process";
