@@ -1,6 +1,6 @@
 [package]
 name = "source-youtube"
-version = "1.0.8"
+version = "1.0.9"
 description = "MicNook 的 YouTube 匯入來源（另外散布的擴充，見 README）"
 edition = "2024"
 license = "MIT"

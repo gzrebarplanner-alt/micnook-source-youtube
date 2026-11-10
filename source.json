@@ -2,7 +2,7 @@
   "protocol": 1,
   "id": "youtube",
   "name": "YouTube",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "author": "MicNook contributors",
   "homepage": "https://github.com/gzrebarplanner-alt/micnook-source-youtube",
   "terms": "https://github.com/gzrebarplanner-alt/micnook-source-youtube/blob/main/TERMS.md",
@@ -10,7 +10,7 @@
   "execMacos": "source-youtube-macos",
   "prefixes": ["yt"],
   "urlHosts": ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"],
-  "capabilities": ["search", "meta", "audio", "video"],
+  "capabilities": ["search", "meta", "playlist", "audio", "video"],
   "summary": {
     "zh-Hant": "用 yt-dlp 從 YouTube 搜尋，並下載影片的音訊與畫面",
     "zh-Hans": "用 yt-dlp 从 YouTube 搜索，并下载视频的音频与画面",

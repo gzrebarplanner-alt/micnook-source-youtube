@@ -371,7 +371,7 @@ checksum = "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea"
 
 [[package]]
 name = "source-youtube"
-version = "1.0.8"
+version = "1.0.9"
 dependencies = [
  "serde_json",
  "sha2",

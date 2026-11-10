@@ -55,6 +55,7 @@ fn main() {
         "setup" => setup(&ctx).map(|_| json!({})),
         "search" => search(&ctx, args),
         "meta" => meta(&ctx, args),
+        "playlist" => playlist(&ctx, args),
         "audio" => audio(&ctx, args),
         "video" => video(&ctx, args),
         op => Err(Fail("unsupported", format!("unsupported op: {op}"))),
@@ -305,6 +306,42 @@ fn search(ctx: &Ctx, a: &Value) -> R<Value> {
         })
         .collect();
     Ok(json!({ "hits": hits, "more": more }))
+}
+
+/// 播放清單網址裡的歌（最多 PLAYLIST_MAX 首）；私人、已刪除的影片與直播不列
+const PLAYLIST_MAX: usize = 200;
+fn playlist(ctx: &Ctx, a: &Value) -> R<Value> {
+    let url = a["input"].as_str().unwrap_or("").trim().to_string();
+    let items = format!("1:{PLAYLIST_MAX}");
+    let o = ytdlp(ctx, &["-J", "--flat-playlist", "--yes-playlist", "--no-warnings", "--playlist-items", &items, &url])?;
+    let j = parse(ctx, &o)?;
+    if j["_type"].as_str() != Some("playlist") {
+        return Err(Fail("not_found", ctx.t("這不是播放清單", "This isn't a playlist")));
+    }
+    let entries = j["entries"].as_array().cloned().unwrap_or_default();
+    let hits: Vec<Value> = entries
+        .iter()
+        .filter(|e| e["live_status"].as_str().map(|s| s == "not_live" || s == "was_live").unwrap_or(true))
+        .filter(|e| e["availability"].as_str().map(|s| s != "private" && s != "needs_auth").unwrap_or(true))
+        .filter_map(|e| {
+            let id = e["id"].as_str()?;
+            let title = e["title"].as_str().unwrap_or_default();
+            // 已刪除、私人影片：yt-dlp 只給「[Deleted video]」「[Private video]」這種標題、沒有長度
+            if title.starts_with('[') && title.ends_with(']') && e["duration"].is_null() {
+                return None;
+            }
+            Some(json!({
+                "ref": format!("yt:{id}"),
+                "title": title,
+                "channel": e["channel"].as_str().or(e["uploader"].as_str()).unwrap_or_default(),
+                "duration": e["duration"].as_f64().unwrap_or(0.0),
+                "url": format!("https://www.youtube.com/watch?v={id}"),
+                "thumbnail": format!("https://i.ytimg.com/vi/{id}/mqdefault.jpg"),
+            }))
+        })
+        .collect();
+    let total = j["playlist_count"].as_u64().unwrap_or(entries.len() as u64);
+    Ok(json!({ "title": j["title"].as_str().unwrap_or_default(), "hits": hits, "total": total }))
 }
 
 fn meta(ctx: &Ctx, a: &Value) -> R<Value> {
